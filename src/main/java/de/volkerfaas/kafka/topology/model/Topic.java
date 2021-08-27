@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 import static de.volkerfaas.kafka.topology.ApplicationConfiguration.REGEX_TOPIC_NAME;
 
+
 @HasValidPartitionIncrementation
 @HasValidConfig
 public class Topic implements ItemWithAccessControl {
@@ -92,7 +93,7 @@ public class Topic implements ItemWithAccessControl {
     }
 
     @Min(1)
-    @Max(20)
+    @Max(20) // TODO: Make maximum limit configurable
     public int getNumPartitions() {
         return numPartitions;
     }

@@ -1,7 +1,9 @@
 package de.volkerfaas.kafka.topology.utils;
 
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaFuture;
@@ -10,6 +12,7 @@ import org.apache.kafka.common.acl.AclBinding;
 import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.config.ConfigResource;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
@@ -81,6 +84,10 @@ public final class MockUtils {
 
     public static void mockParseSchema(SchemaRegistryClient schemaRegistryClient, String schemaString) {
         doReturn(Optional.of(new AvroSchema(schemaString))).when(schemaRegistryClient).parseSchema(eq(AvroSchema.TYPE), anyString(), eq(Collections.emptyList()));
+    }
+
+    public static void mockTestCompatibility(SchemaRegistryClient schemaRegistryClient) throws RestClientException, IOException {
+        doReturn(true).when(schemaRegistryClient).testCompatibility(anyString(), any(ParsedSchema.class));
     }
 
     public static void mockListTopics(AdminClient adminClient, Set<String> topicNames) throws InterruptedException, ExecutionException {

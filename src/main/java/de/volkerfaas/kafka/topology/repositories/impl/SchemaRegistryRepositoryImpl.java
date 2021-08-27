@@ -2,6 +2,7 @@ package de.volkerfaas.kafka.topology.repositories.impl;
 
 import com.github.freva.asciitable.Column;
 import de.volkerfaas.kafka.topology.model.Schema;
+import de.volkerfaas.kafka.topology.repositories.SchemaRegistryException;
 import de.volkerfaas.kafka.topology.repositories.SchemaRegistryRepository;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
@@ -103,22 +104,19 @@ public class SchemaRegistryRepositoryImpl implements SchemaRegistryRepository {
         printSchemas(downloadedSchemas);
     }
 
-    public Schema downloadSchema(final Schema schema, final String directory) throws IOException, RestClientException {
+    public Schema downloadSchema(final Schema schema, final String directory) throws IOException, RestClientException, SchemaRegistryException {
         if (Objects.isNull(schema)) {
-            LOGGER.error("No schema or schema file found");
-            return null;
+            throw new SchemaRegistryException("No schema or schema file found");
         }
         final String subject = schema.getSubject();
         try {
             final SchemaMetadata latestSchemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(subject);
             if (Objects.isNull(latestSchemaMetadata)) {
-                LOGGER.error("No schema meta data available for subject '{}'", subject);
-                return null;
+                throw new SchemaRegistryException("No schema meta data available for subject '%s'", subject);
             }
             final String schemaType = latestSchemaMetadata.getSchemaType();
             if (Objects.isNull(schemaType)) {
-                LOGGER.error("No schema type specified for subject '{}'", subject);
-                return null;
+                throw new SchemaRegistryException("No schema type specified for subject '%s'", subject);
             }
             schema.setType(Schema.Type.valueOf(schemaType));
             final String compatibilityMode = getCompatibilityMode(subject);
@@ -127,13 +125,11 @@ public class SchemaRegistryRepositoryImpl implements SchemaRegistryRepository {
             }
             final String schemaContent = latestSchemaMetadata.getSchema();
             if (Objects.isNull(schemaContent)) {
-                LOGGER.error("No content available for subject '{}'", subject);
-                return null;
+                throw new SchemaRegistryException("No content available for subject '%s'", subject);
             }
             final Path schemaFilePath = getSchemaPath(schema, directory);
             if (Objects.isNull(schemaFilePath)) {
-                LOGGER.error("Invalid schema file path '{}'", subject);
-                return null;
+                throw new SchemaRegistryException("Invalid schema file path '%s'", subject);
             }
             if (dryRun) {
                 LOGGER.info("Schema to be downloaded to {}", schemaFilePath);
@@ -184,26 +180,20 @@ public class SchemaRegistryRepositoryImpl implements SchemaRegistryRepository {
     }
 
     // TODO: Do not return null on an error, but throw an exception instead.
-    public Schema registerSchema(final Schema schema, final String directory) throws IOException, RestClientException {
+    public Schema registerSchema(final Schema schema, final String directory) throws IOException, RestClientException, SchemaRegistryException {
         final String subject = schema.getSubject();
         final Schema.Type schemaType = schema.getType();
         final Path schemaFile = getSchemaPath(schema, directory);
         if (Objects.isNull(schemaFile)) {
-            LOGGER.error("Invalid schema file '{}'", subject);
-            return null;
+            throw new SchemaRegistryException("Invalid schema file '%s'", subject);
         }
         final ParsedSchema parsedSchema = parseSchema(schemaType.toString(), schemaFile);
         if (Objects.isNull(parsedSchema)) {
-            LOGGER.error("Schema of type {} for subject '{}' is incompatible to existing schemas", schemaType, subject);
-            return null;
+            throw new SchemaRegistryException("Schema of type %s for subject '%s' could not be parsed", schemaType, subject);
         }
-        /*
-        final boolean compatible = schemaRegistryClient.testCompatibility(subject, parsedSchema);
-         */
         final boolean compatible = testCompatibility(subject, parsedSchema);
         if (!compatible) {
-            LOGGER.error("Schema of type {} for subject '{}' is incompatible to existing schemas", schemaType, subject);
-            return null;
+            throw new SchemaRegistryException("Schema of type %s for subject '%s' is incompatible to existing schemas", schemaType, subject);
         }
         final int version = getVersion(subject, parsedSchema);
         if (version > 0) {

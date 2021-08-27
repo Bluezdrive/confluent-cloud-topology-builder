@@ -2,7 +2,6 @@ package de.volkerfaas.kafka.topology;
 
 import de.volkerfaas.kafka.topology.services.*;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.acl.AclBinding;
@@ -16,7 +15,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cache.CacheManager;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -99,7 +97,7 @@ public class DeployTopologyIntegrationTest {
 
         @Test
         @DisplayName("without changes to cluster when topology equals cluster")
-        void testTopologyEqualsCluster() throws ExecutionException, InterruptedException, RestClientException, IOException {
+        void testTopologyEqualsCluster() throws ExecutionException, InterruptedException {
             final String topicNameUserUpdated = "de.volkerfaas.arc.public.user_updated";
             final String topicNameTestCreated = "de.volkerfaas.test.public.test_created";
 
@@ -139,7 +137,7 @@ public class DeployTopologyIntegrationTest {
 
         @Test
         @DisplayName("with one new partition being created when partitions in cluster are less than partitions in topology")
-        void testNewPartition() throws InterruptedException, ExecutionException, RestClientException, IOException {
+        void testNewPartition() throws InterruptedException, ExecutionException {
             final String topicNameUserUpdated = "de.volkerfaas.arc.public.user_updated";
             final String topicNameTestCreated = "de.volkerfaas.test.public.test_created";
 
@@ -192,7 +190,7 @@ public class DeployTopologyIntegrationTest {
 
         @Test
         @DisplayName("with one new topic being created when it doesn't exist in cluster")
-        void testNewTopic() throws ExecutionException, InterruptedException, RestClientException, IOException {
+        void testNewTopic() throws ExecutionException, InterruptedException {
             final String topicNameUserUpdated = "de.volkerfaas.arc.public.user_updated";
             final String topicNameTestCreated = "de.volkerfaas.test.public.test_created";
             final int numPartitionsTestCreated = 3;
@@ -248,7 +246,7 @@ public class DeployTopologyIntegrationTest {
 
         @Test
         @DisplayName("with config items being set when they don't exist in cluster")
-        void testConfigChanged() throws InterruptedException, ExecutionException, RestClientException, IOException {
+        void testConfigChanged() throws InterruptedException, ExecutionException {
             final String topicNameUserUpdated = "de.volkerfaas.arc.public.user_updated";
             final String topicNameTestCreated = "de.volkerfaas.test.public.test_created";
 
@@ -299,7 +297,7 @@ public class DeployTopologyIntegrationTest {
 
         @Test
         @DisplayName("without changes to cluster when topology equals cluster")
-        void testTopologyEqualsCluster() throws InterruptedException, ExecutionException, RestClientException, IOException {
+        void testTopologyEqualsCluster() throws InterruptedException, ExecutionException {
             final String topicNameUserUpdated = "de.volkerfaas.arc.public.user_updated";
             final String topicNameTestCreated = "de.volkerfaas.test.public.test_created";
 
@@ -340,7 +338,7 @@ public class DeployTopologyIntegrationTest {
 
         @Test
         @DisplayName("with the consumer acl being removed when domain no longer exists in topology")
-        void testDeleteConsumerAcl() throws InterruptedException, ExecutionException, RestClientException, IOException {
+        void testDeleteConsumerAcl() throws InterruptedException, ExecutionException {
             final String topicNameUserUpdated = "de.volkerfaas.arc.public.user_updated";
             final String topicNameTestCreated = "de.volkerfaas.test.public.test_created";
 
@@ -386,7 +384,7 @@ public class DeployTopologyIntegrationTest {
 
         @Test
         @DisplayName("with the domain acl being removed when domain no longer exists in topology")
-        void testDeleteDomainAcl() throws InterruptedException, ExecutionException, RestClientException, IOException {
+        void testDeleteDomainAcl() throws InterruptedException, ExecutionException {
             final String topicNameUserUpdated = "de.volkerfaas.arc.public.user_updated";
             final String topicNameTestCreated = "de.volkerfaas.test.public.test_created";
             final String topicNameSoundPlayed = "de.volkerfaas.music.public.sound_played";
@@ -466,6 +464,7 @@ public class DeployTopologyIntegrationTest {
             mockDescribeTopics(adminClient, topicDescriptions);
             mockListTopics(adminClient, Set.of(topicNameUserUpdated, topicNameTestCreated, topicNameSoundPlayed));
             mockParseSchema(schemaRegistryClient, "{ \"type\": \"string\" }");
+            mockTestCompatibility(schemaRegistryClient);
             mockListOffsets(adminClient, Collections.emptyMap());
             mockListConsumerGroups(adminClient, Collections.emptyList());
             mockDescribeConsumerGroups(adminClient, Collections.emptyMap());
@@ -489,7 +488,7 @@ public class DeployTopologyIntegrationTest {
 
         @Test
         @DisplayName("without changes to cluster when topology equals cluster")
-        void testTopologyEqualsCluster() throws InterruptedException, ExecutionException, RestClientException, IOException {
+        void testTopologyEqualsCluster() throws InterruptedException, ExecutionException {
             final String topicNameUserUpdated = "de.volkerfaas.arc.public.user_updated";
             final String topicNameTestCreated = "de.volkerfaas.test.public.test_created";
 
@@ -530,7 +529,7 @@ public class DeployTopologyIntegrationTest {
 
         @Test
         @DisplayName("with the topic being removed when topic no longer exists in topology")
-        void testDeleteTopic() throws InterruptedException, ExecutionException, RestClientException, IOException {
+        void testDeleteTopic() throws InterruptedException, ExecutionException {
             final String topicNameUserUpdated = "de.volkerfaas.arc.public.user_updated";
             final String topicNameTestCreated = "de.volkerfaas.test.public.test_created";
             final String topicNameSoundPlayed = "de.volkerfaas.music.public.sound_played";
@@ -604,6 +603,7 @@ public class DeployTopologyIntegrationTest {
             mockDescribeTopics(adminClient, topicDescriptions);
             mockListTopics(adminClient, Set.of(topicNameUserUpdated, topicNameTestCreated, topicNameSoundPlayed));
             mockParseSchema(schemaRegistryClient, "{ \"type\": \"string\" }");
+            mockTestCompatibility(schemaRegistryClient);
             mockListOffsets(adminClient, Collections.emptyMap());
             mockListConsumerGroups(adminClient, Collections.emptyList());
             mockDescribeConsumerGroups(adminClient, Collections.emptyMap());

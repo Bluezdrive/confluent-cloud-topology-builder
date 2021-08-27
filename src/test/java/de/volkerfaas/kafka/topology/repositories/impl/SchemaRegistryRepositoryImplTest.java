@@ -1,6 +1,7 @@
 package de.volkerfaas.kafka.topology.repositories.impl;
 
 import de.volkerfaas.kafka.topology.model.Schema;
+import de.volkerfaas.kafka.topology.repositories.SchemaRegistryException;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
@@ -80,7 +81,7 @@ class SchemaRegistryRepositoryImplTest {
 
         @Test
         @DisplayName("should download schema file and return schema file path")
-        void testDownloadSchemaFile() throws IOException, RestClientException {
+        void testDownloadSchemaFile() throws IOException, RestClientException, SchemaRegistryException {
             final String schemaContent = "{ \"type\": \"string\" }";
             final String subject = "de.volkerfaas.test.public.user_updated-value";
             final String schemaFile = "events/de.volkerfaas.test/" + subject + ".avsc";
@@ -110,10 +111,9 @@ class SchemaRegistryRepositoryImplTest {
         @NullAndEmptySource
         @ValueSource(strings = { " ", "foo" })
         @DisplayName("should not download schema file and return null when schema subject is invalid")
-        void testNotDownloadSchemaFile(String subject) throws IOException, RestClientException {
+        void testNotDownloadSchemaFile(String subject) {
             final Schema schema = new Schema(subject, Schema.Type.AVRO, Schema.CompatibilityMode.FORWARD_TRANSITIVE);
-            final Schema downloadedSchema = schemaRegistryRepository.downloadSchema(schema, topologyDirectory);
-            assertNull(downloadedSchema);
+            assertThrows(SchemaRegistryException.class, () -> schemaRegistryRepository.downloadSchema(schema, topologyDirectory));
         }
 
     }
@@ -199,14 +199,14 @@ class SchemaRegistryRepositoryImplTest {
             final String schemaString = "{ \"type\": \"string\" }";
             doReturn(Optional.of(new AvroSchema(schemaString))).when(schemaRegistryClient).parseSchema(eq(AvroSchema.TYPE), anyString(), anyList());
             doReturn(false).when(schemaRegistryClient).testCompatibility(eq(subject), any(ParsedSchema.class));
-            schemaRegistryRepository.registerSchema(schema, topologyDirectory);
+            assertThrows(SchemaRegistryException.class, () -> schemaRegistryRepository.registerSchema(schema, topologyDirectory));
             verify(schemaRegistryClient, never()).getVersion(anyString(), any(ParsedSchema.class));
             verify(schemaRegistryClient, never()).register(anyString(), any(ParsedSchema.class));
         }
 
         @Test
         @DisplayName("should not register schema file when schema already exists")
-        void testSchemaAlreadyExists() throws IOException, RestClientException {
+        void testSchemaAlreadyExists() throws IOException, RestClientException, SchemaRegistryException {
             final String subject = "de.volkerfaas.test.public.test_created-value";
             final String compatibility = "FULL_TRANSITIVE";
             final String schemaFile = "events/de.volkerfaas.test/" + subject + ".avsc";
@@ -222,7 +222,7 @@ class SchemaRegistryRepositoryImplTest {
 
         @Test
         @DisplayName("should register a new schema when version not exists")
-        void testSchemaNewVersion() throws IOException, RestClientException {
+        void testSchemaNewVersion() throws IOException, RestClientException, SchemaRegistryException {
             final String subject = "de.volkerfaas.test.public.test_created-value";
             final String compatibility = "FULL_TRANSITIVE";
             final String schemaFile = "events/de.volkerfaas.test/" + subject + ".avsc";
@@ -249,7 +249,7 @@ class SchemaRegistryRepositoryImplTest {
 
         @Test
         @DisplayName("should register a new schema when subject not exists")
-        void testSchemaNewSubject() throws IOException, RestClientException {
+        void testSchemaNewSubject() throws IOException, RestClientException, SchemaRegistryException {
             final String subject = "de.volkerfaas.test.public.test_created-value";
             final String compatibility = "FULL_TRANSITIVE";
             final String schemaFile = "events/de.volkerfaas.test/" + subject + ".avsc";
@@ -274,7 +274,7 @@ class SchemaRegistryRepositoryImplTest {
 
         @Test
         @DisplayName("should register a new schema when subject exists, but schema not exists")
-        void testSchemaUpdate() throws IOException, RestClientException {
+        void testSchemaUpdate() throws IOException, RestClientException, SchemaRegistryException {
             final String subject = "de.volkerfaas.test.public.test_created-value";
             final String compatibility = "FULL_TRANSITIVE";
             final String schemaFile = "events/de.volkerfaas.test/" + subject + ".avsc";
@@ -313,7 +313,7 @@ class SchemaRegistryRepositoryImplTest {
 
         @Test
         @DisplayName("should not register a new schema when dry run is active")
-        void testSchemaUpdateDryRun() throws IOException, RestClientException {
+        void testSchemaUpdateDryRun() throws IOException, RestClientException, SchemaRegistryException {
             final String subject = "de.volkerfaas.test.public.test_created-value";
             final String compatibility = "FULL_TRANSITIVE";
             final String schemaFile = "events/de.volkerfaas.test/" + subject + ".avsc";
